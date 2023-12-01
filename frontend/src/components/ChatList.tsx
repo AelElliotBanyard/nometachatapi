@@ -10,15 +10,13 @@ const ChatList: FC<ChatListProps> = ({ chats, setChat }) => {
     <div>
       {chats.map((chat) => {
         return (
-          <div className=" h-12 border-b border-gray-400 flex items-center">
-            <p
-              className="font-bold mx-2"
-              onClick={() => {
-                setChat(chat);
-              }}
-            >
-              {chat.name}
-            </p>
+          <div
+            className=" h-12 border-b border-gray-400 flex items-center"
+            onClick={() => {
+              setChat(chat);
+            }}
+          >
+            <p className="font-bold mx-2">{chat.name}</p>
           </div>
         );
       })}

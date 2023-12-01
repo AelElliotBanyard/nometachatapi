@@ -1,42 +1,41 @@
 import { type } from "os";
 
 export type User = {
-  id: string;
-  firstname: string;
-  lastname: string;
+  _id: string;
+  name: string;
   email: string;
-  user_credentials: string;
+  passwordHash: string;
+  chats: Array<String>
 };
 
 export type Chat = {
-  id: string;
+  _id: string;
   name: string;
   description: string;
-  created_date: number;
+  created_ts: number;
   join_code: string;
 };
 
 export type Message = {
-  id: string;
+  _id: string;
   content: string;
-  created_date: number;
+  created_ts: number;
   chatId: string;
   userId: string;
 };
 
 export type ChatData = {
-  id: string;
+  _id: string;
   name: string;
   description: string;
   created_date: number;
   join_code: string;
   messages: {
-    id: string;
+    _id: string;
     content: string;
-    created_date: number;
+    created_ts: number;
     chatId: string;
     userId: string;
     sender: string;
   }[];
 };
-

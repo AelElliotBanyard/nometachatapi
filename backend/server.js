@@ -10,6 +10,8 @@ const {
   sendMessage,
   checkLogin,
   createChat,
+  joinChat,
+  getChat,
 } = require("./db");
 
 const app = express();
@@ -23,7 +25,11 @@ app.use(
 app.use(express.json());
 
 const server = http.createServer(app);
-const io = new Server(server);
+const io = new Server(server, {
+  cors: {
+    origin: "http://localhost:3000",
+  },
+});
 
 app.post("/login", async (req, res) => {
   const { email, password } = req.body;
@@ -77,20 +83,19 @@ app.post("/register", async (req, res) => {
 });
 
 app.post("/createChat", async (req, res) => {
-  const {userId, name, description} = req.body
+  const { userId, name, description } = req.body;
   try {
-    const newChat = await createChat(name, description, userId)
-    if(newChat) {
-      return res.json({success: true, message: "New Chat created"});
+    const newChat = await createChat(name, description, userId);
+    if (newChat) {
+      return res.json({ success: true, message: "New Chat created" });
     } else {
-      return res.json({success: false, message: "Creation of chat failed!"})
+      return res.json({ success: false, message: "Creation of chat failed!" });
     }
-
   } catch (error) {
-    console.log(error)
-    return res.json({success: false, message: "Somethin went wrong!"})
+    console.log(error);
+    return res.json({ success: false, message: "Somethin went wrong!" });
   }
-})
+});
 
 app.post("/getChats", async (req, res) => {
   const { email } = req.body;
@@ -109,20 +114,50 @@ app.post("/getChats", async (req, res) => {
   }
 });
 
+app.post("/getChat", async (req, res) => {
+  const { chatId } = req.body;
+
+  try {
+    const chat = await getChat(chatId);
+    return res.json({
+      success: true,
+      chat: chat,
+    });
+  } catch (error) {
+    console.log(error);
+    return res
+      .json({ success: false, message: "Something went wrong!" })
+      .status(500)
+      .send();
+  }
+});
+
+app.post("/joinChat", async (req, res) => {
+  const { chatCode, userId } = req.body;
+  try {
+    const join = await joinChat({ join_code: chatCode, userId: userId });
+    if (join) {
+      return res.json({ success: true, message: "Successfully joined chat!" });
+    } else {
+      return res.json({ success: false, message: "Could not join chat!" });
+    }
+  } catch (error) {
+    console.log(error);
+    return res.json({ success: false, message: "Something went wrong!" });
+  }
+});
+
 io.on("connection", (socket) => {
   console.log("A user connected");
 
-  socket.on("message_send", async (message, chat, sender) => {
+  socket.on("messageSend", async ({ message, chat, sender }) => {
     try {
-      const sendMsg = await sendMessage(message, chat, sender);
+      const sendMsg = await sendMessage({ message, chatCode: chat, sender });
       if (sendMsg.success) {
-        io.in(chat).emit("message_new");
-      } else {
-        io.in(chat).emit(`message_error_${sender}`, sendMsg.message);
+        io.emit(`messageNew`, sendMsg);
       }
     } catch (error) {
       console.log(error);
-      io.in(chat).emit(`message_error_${sender}`, error);
     }
   });
 });

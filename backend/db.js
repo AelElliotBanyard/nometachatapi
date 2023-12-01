@@ -7,8 +7,8 @@ const saltRounds = 10;
 const username = process.env.MONGO_INITDB_ROOT_USERNAME;
 const password = process.env.MONGO_INITDB_ROOT_PASSWORD;
 const databaseName = process.env.MONGO_INITDB_DATABASE;
-const uri = process.env.MONGO_URI
-const port = process.env.MONGO_PORT
+const uri = process.env.MONGO_URI;
+const port = process.env.MONGO_PORT;
 
 mongoose.connect(
   `mongodb://${username}:${password}@${uri}:${port}/${databaseName}`,
@@ -25,7 +25,6 @@ const chatShema = new mongoose.Schema({
   created_ts: { type: Date, default: Date.now() },
   messages: [
     {
-      id: String,
       content: String,
       created_ts: { type: Date, default: Date.now() },
       userId: String,
@@ -53,9 +52,15 @@ const createChat = async (name, description, userId) => {
     });
     newChat.save();
     const user = await User.findById(userId).exec();
-    let chats = user.chats;
+    let chats = [];
 
-    await User.findByIdAndUpdate(userId, { chats: [...chats, newChat._id] });
+    if (user.chats != null && user.chats.length > 0) {
+      chats = user.chats;
+    }
+
+    chats.push(newChat._id);
+
+    await User.findByIdAndUpdate(userId, { chats: chats });
     return true;
   } catch (error) {
     console.log(error);
@@ -63,13 +68,18 @@ const createChat = async (name, description, userId) => {
   }
 };
 
-const joinChat = async (join_code, userId) => {
+const joinChat = async ({ join_code, userId }) => {
   try {
     const chatId = await Chat.findOne({ join_code: join_code }).exec();
     const user = await User.findById(userId).exec();
-    let chats = user.chats;
+    let chats = [];
+    if (user.chats != null && user.chats.length > 0) {
+      chats = user.chats;
+    }
 
-    await User.findByIdAndUpdate(userId, { chats: [...chats, chatId._id] });
+    chats.push(chatId._id);
+
+    await User.findByIdAndUpdate(userId, { chats: chats });
     return true;
   } catch (error) {
     console.log(error);
@@ -161,7 +171,17 @@ const getChats = async (email) => {
   }
 };
 
-const sendMessage = async (message, chatCode, sender) => {
+const getChat = async (chatId) => {
+  try {
+    let chat = await Chat.findById(chatId).exec();
+    return chat;
+  } catch (error) {
+    console.log(error);
+    return {};
+  }
+};
+
+const sendMessage = async ({message, chatCode, sender}) => {
   try {
     const user = await User.findOne({ email: sender }).exec();
     const chat = await Chat.findOne({ join_code: chatCode }).exec();
@@ -171,7 +191,6 @@ const sendMessage = async (message, chatCode, sender) => {
         messages: [
           ...messages,
           {
-            id: messages.length + 1,
             content: message,
             userId: user.id,
             sender: user.name,
@@ -212,4 +231,5 @@ module.exports = {
   getUser,
   getChats,
   sendMessage,
+  getChat,
 };
